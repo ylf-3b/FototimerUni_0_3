@@ -1,4 +1,4 @@
-FototimerUni_0_2
+FototimerUni_0_3
 ================
 
 "Simple" Foto Intervalometer for Canon EOS Cameras with some special features.
@@ -17,6 +17,10 @@ goal for the "Uni" versions are:
 more later ...
 
 (under development)
+
+================
+changes since FototimerUni-0.2
+
 
 ================
 changes since FototimerUni-0.1
