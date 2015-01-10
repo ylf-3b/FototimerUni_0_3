@@ -14,8 +14,7 @@ nop();
 template<class T> inline Print &operator <<(Print &obj, T arg) { obj.print(arg); return obj; }
 
 /*********************************************************************************************
-FotoTimerUni 0.1
-based on FotoTimerYun0.31
+FotoTimerUni 0.3
 
 - rotary encoder increment or decrement values
 - timer controlled by hardware timer interrupt
@@ -35,15 +34,15 @@ based on FotoTimerYun0.31
 ** IMPORTANT! FIRST DEFINE HARDWARE PLATFORM! **
 ***********************************************/
 //#define HARDWARE_UNO  // uncomment this, if a Arduino UNO is used
-//#define HARDWARE_YUN // uncomment this, if a Arduino YUN is used
-#define HARDWARE_MEGA // // uncomment this, if a Arduino Mega ADK is used
+#define HARDWARE_YUN // uncomment this, if a Arduino YUN is used
+//#define HARDWARE_MEGA // // uncomment this, if a Arduino Mega ADK is used
 
 /* *********************************************
 ** IMPORTANT! SECOND DEFINE ISO REMOTE TYPE!  **
 ***********************************************/
 //#define ISOREMOTE_SERIAL  // uncomment this, if a RaspberryPi as slave is used
-//#define ISOREMOTE_YUN  // uncomment this, if a Arduino YUN is used
-#define ISOREMOTE_USBHOST  // uncomment this, if a Arduino Meaga ADK is used
+#define ISOREMOTE_YUN  // uncomment this, if a Arduino YUN is used
+//#define ISOREMOTE_USBHOST  // uncomment this, if a Arduino Meaga ADK is used
 
 // set pin numbers and other constants:
 const int batteryPin = 1;  // the number of the analog input used for the battery watching
@@ -52,10 +51,10 @@ const int encoderPinB = 4;  // the number of the encoder B digital input pin
 const int encoderPinE = A4;  // the number of the encoder Enter digital input pin
 //% #ifdef HARDWARE_MEGA // MEGA ADK needs other Pin setup, because pin7 is used for USB interupt
   // not used on MEGA ADK     // the number of the option signal digital output pin
-  const int shutterPin = 6;   // the number of the shutter signal digital output pin
+//  const int shutterPin = 6;   // the number of the shutter signal digital output pin
 //% #else
-//%  const int optionPin = 6;    // the number of the option signal digital output pin
-//%  const int shutterPin = 7;   // the number of the shutter signal digital output pin
+const int optionPin = 6;    // the number of the option signal digital output pin
+const int shutterPin = 7;   // the number of the shutter signal digital output pin
 //% #endif
 const int flashPin = 2;    // the number of the flash signal digital input pin
 const int contrastPin = 5;   // the number of the pwr signal pin for contrast voltage
@@ -63,7 +62,7 @@ const float intermax = 5940.0; // maximaler interval [S], 5940S = 99M
 const float expomax = 5792.618457;  // maximaler exposure time [S], 5940S = 99M
 const unsigned long pausechecktime = 5; // time [mS] before shutter to check pause
 const unsigned long flashlimit = 1000; // 1000 mS timeout limit for flashback signal
-const char softvers[] = "FTUni 0_2 b06";
+const char softvers[] = "FTuni 0.3";
 
 const bool SKIP_INTRO = true;
 
@@ -77,6 +76,7 @@ const bool SKIP_INTRO = true;
 #include <exposurevary.h>
 #include <PrintSubFunctions.h>
 
+/* not needed for the YUN
 //==============================================================================
 // For Arduino MegaADK ISO Switching via USB host port
 #include <usbhub.h>     // CircuitsAtHome USB Libraries must be present
@@ -97,6 +97,8 @@ public:
       virtual void OnDeviceDisconnectedState(PTP *ptp);
       virtual void OnDeviceInitializedState(PTP *ptp);
 };
+*/
+
 /*
 class EosEventHandlers : public EOSEventHandlers
 {
@@ -106,6 +108,8 @@ public:
 	virtual void OnPropertyValuesAccepted(const EOSEvent *evt, const uint16_t index, const uint32_t &val);
         virtual void OnObjectCreated(const EOSEvent *evt) {};
 };*/
+
+/*
 unsigned int iso_to_cam;
 unsigned int current_iso = 100;
 
@@ -130,7 +134,9 @@ void CamStateHandlers::OnDeviceInitializedState(PTP *ptp)
     {
         stateConnected = stConnected;
         E_Notify(PSTR("Camera connected\r\n"),0x80);
-        /*   uint16_t rc = ((CanonEOS*)ptp)->SetProperty(EOS_DPC_ShutterSpeed,SHUTTER_SPEED_BULB);*/
+        /*   uint16_t rc = ((CanonEOS*)ptp)->SetProperty(EOS_DPC_ShutterSpeed,SHUTTER_SPEED_BULB);
+        */
+/*
     }
     
     uint16_t rc = ((CanonEOS*)ptp)->SetProperty(EOS_DPC_Iso, iso_to_cam );
@@ -141,16 +147,16 @@ void CamStateHandlers::OnDeviceInitializedState(PTP *ptp)
     Serial << "Sent ISO "<<iso_to_cam<< " to cam.\n";
 }
 
-
+*/
 
 //==============================================================================
 
 //% #ifdef ISOREMOTE_YUN
-//%   #include <yunremote.h>
+   #include <yunremote.h>
 //% #endif
 
 //% #ifdef ISOREMOTE_USBHOST
-  #include <megaremote.h>
+//  #include <megaremote.h>
 //% #endif
 
 //% #ifdef ISOREMOTE_SERIAL
@@ -198,6 +204,7 @@ float exposuretime = 0; // real value loaded at start from EEPROM
 float exposureramp = 0; // real value loaded at start from EEPROM
 int isolevel = 0; // ISO level @ camera, read via USB
 int isolvold = 0; // last ISO level before switch
+boolean isoauto = false; // automatic ISO level switching
 int isomin = 50; // minimum ISO level, stored in config
 int isomax = 3200; // maximum ISO level, stored in config
 float isotrigger = 0; // pre trigger time for automatik ISO switch
@@ -260,7 +267,9 @@ void iso_switch_down(void);
 // display time human readable
 void printtime(float);
 
+/* needed for MEGA ADK Hardware and USB PTP lib
 void setisolevel(int isolevel);
+*/
 
 //===================================================================
 //===================================================================
@@ -276,10 +285,11 @@ void setup()
   // variable to setup custom display characters
   uint8_t newLCDchar[8];
   
-  Serial.begin(115200);    //% not when doing ISO control via USB/Serial?
+  Serial.begin(115200);    //% not when doing ISO control via USB/Serial? YES, DON'T!!!
+/* not needed on YUN
   if (Usb.Init() == -1)
       Serial.println("OSC did not start.");
-
+*/
 
   // first load config and settings
   loadConfig();
@@ -317,8 +327,8 @@ void setup()
   // set them to high, because low active
   pinMode(flashPin, INPUT);
   //% #ifndef HARDWARE_MEGA
-  //%  pinMode(optionPin, OUTPUT);
-  //%  digitalWrite(optionPin, HIGH);
+  pinMode(optionPin, OUTPUT);
+  digitalWrite(optionPin, HIGH);
   //% #endif
   pinMode(shutterPin, OUTPUT);
   digitalWrite(shutterPin, HIGH);
@@ -326,15 +336,15 @@ void setup()
     // on YUN, the interupts are "twisted"
     // flash signal on pin 2 interrupt
     // interrupt attached at pause/start
-    //attachInterrupt(1, timerflash, FALLING);
+  attachInterrupt(1, timerflash, FALLING);
     // config interrupts for rotary encoder on pin 3
-  //%  attachInterrupt(0, getEncoder, FALLING);
+  attachInterrupt(0, getEncoder, FALLING);
   //% #else
     // flash signal on pin 2 interrupt
     // interrupt attached at pause/start
     //attachInterrupt(0, timerflash, FALLING);
     // config interrupts for rotary encoder on pin 3
-    attachInterrupt(1, getEncoder, FALLING);  
+    //attachInterrupt(1, getEncoder, FALLING);  
   //% #endif
   // start delay for reading welcome message
   temp_int = 7; 
@@ -391,6 +401,7 @@ void loop()
       {
       // no check for success
       getanswer(&isolevel);
+      // reserverd: isoauto = true if level > 0?
       }    
     // check if new cycle beginns
     // calculate the parameters
@@ -1400,8 +1411,8 @@ void settings2Srceen()
             }
           if (isolevel > isomax)
             {
-            isolevel = isomax;
-            isolvold = isolevel;
+            //isoauto = false;
+            isolevel = 0;
             }
           }
         if (keyValueV < 0)
@@ -1413,13 +1424,13 @@ void settings2Srceen()
             }
           if (isolevel < isomin)
             {
-            isolevel = isomin;
-            isolvold = isolevel;
+            //isoauto = false;
+            isolevel = 0;
             }
           }       
         lcd.setCursor(1,1);
         lcd.print("current:");
-        if (isolevel == 0 || isolvold != 0)
+        if (isolevel == 0)
           {
           lcd.print("off  ");
           }
@@ -1430,18 +1441,20 @@ void settings2Srceen()
           }
         if (keycode == KEY_CODE_OK)
           {
-          if (isolevel == 0 && isolvold > 0)
+          if (isoauto == false)
             {
             getisolevel();
             lcd.setCursor(1,1);
             lcd.print("read ISOspeed ");
             delay(1000);
             getanswer(&isolevel);
-            isolvold = 0;
+            //isolvold = 0;
             }
-          else if (isolevel == isolvold)
+          if (isolevel == 0 && isoauto == true)
             {
-            isolevel = 0;
+            isoauto = false;
+            lcd.setCursor(1,1);
+            lcd.print("switch ISO off");
             delay(500);
             }
           else
@@ -1451,6 +1464,10 @@ void settings2Srceen()
             lcd.print(" set ISOspeed ");
             delay(1000);
             getanswer(&isolevel);
+            if (isolevel > 0)
+              {
+              isoauto = true;
+              }
             }
           keycode = KEY_CODE_NEUTRAL;
           } 
@@ -1753,6 +1770,8 @@ void iso_switch_up(void)
     {
     // remember old isolevel
     isolvold = isolevel;
+    } // try, consequence not clear, if isoswitch will retried
+    
     // give command to new isolevel
     setisolevel(isolvold * 2);
     // wait max. 10S for answer ...
@@ -1766,12 +1785,12 @@ void iso_switch_up(void)
         break;
         }
       }
-    }
+    //} // try, consequence not clear, if isoswitch will retried
     timestamp2 = millis();
     //% #ifdef ISOREMOTE_YUN
-    //%    Serial1.print("Debug:");
-    //%    Serial1.print(timestamp2-timestamp1,DEC);
-    //%    Serial1.print("mS\n");
+        Serial1.print("Debug:");
+        Serial1.print(timestamp2-timestamp1,DEC);
+        Serial1.print("mS\n");
     //% #endif    
     // check for success
     if (isolvold * 2 == isolevel)
