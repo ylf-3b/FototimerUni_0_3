@@ -229,7 +229,7 @@ int loopactioncounter = 0;
 // debug
 unsigned long timestamp1 = 0; // first timestamp
 unsigned long timestamp2 = 0; // second timestamp
-
+boolean logdone = false; // remark logging done
 
 
 // initialize the library with the numbers of the interface pins
@@ -266,6 +266,7 @@ void iso_switch_up(void);
 void iso_switch_down(void);
 // display time human readable
 void printtime(float);
+void logframe(void);
 
 /* needed for MEGA ADK Hardware and USB PTP lib
 void setisolevel(int isolevel);
@@ -371,6 +372,8 @@ void setup()
   MsTimer2::set(nextaction,timerpausecheck);
   // clear the display  
   lcd.clear();
+  // send debug information to Linux side
+  Serial1.print("Debug:Start!");
   // and go for the timer interupt function
   MsTimer2::start();
 }
@@ -465,6 +468,14 @@ void loop()
       {
       lcd.print(" ");
       }
+    // do logging if not yet done
+    if (logdone == false && timerpause == false)
+      {
+      // send log information for each frame
+      logframe();
+      logdone = true;
+      }
+    // delay for main loop
     delay(100);
 }
 
@@ -568,6 +579,7 @@ void timerflash()
   MsTimer2::set(nextaction,timerstopshutter);
   MsTimer2::start(); // start timer
   timerstate = 0; // sign shutter activ to user
+  logdone = false; // remember to log frame information
   }
 
 void timerstopshutter()
@@ -639,6 +651,8 @@ void newCycle()
     // automatic mode
     collision_calculation_automatic();    
     }  
+  // reset logging
+  logdone = false;
   }
 
 //===================================================================
@@ -1933,8 +1947,26 @@ void saveSettings()
   address = address + EEPROM_writeAnything(address, isotrigger);  
     Serial << "DEBUG: address after writing last setting: " << address << "\n";  
   }
-  
 
+/*************************************
+ * logging picture/frame information *
+ *************************************/
+void logframe()
+  {
+  Serial1.print("Debug:");
+  Serial1.print(piccount,DEC);
+  Serial1.print(intervaltime,DEC);
+  Serial1.print(intervalramp,DEC);
+  Serial1.print(exposuretime,DEC);
+  Serial1.print(exposureramp,DEC);
+  Serial1.print(isotrigger,DEC);
+  Serial1.print(0,DEC); // lightning value for future usage
+  }
+
+
+  
+//=================================================================================================
+// MEAGA ADK USB stuff
 
 // set ISO level
 // why not in megaremote.cpp? because it can't access the Usb instance or the iso_to_cam global variable
