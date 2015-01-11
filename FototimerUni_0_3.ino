@@ -373,7 +373,7 @@ void setup()
   // clear the display  
   lcd.clear();
   // send debug information to Linux side
-  Serial1.print("Debug:Start!");
+  Serial1.print("Debug:Start!\n");
   // and go for the timer interupt function
   MsTimer2::start();
 }
@@ -1953,20 +1953,29 @@ void saveSettings()
  *************************************/
 void logframe()
   {
-  Serial1.print("Debug:");
+  Serial1.print("Log:");
   Serial1.print(piccount,DEC);
+  Serial1.print(";");
   Serial1.print(intervaltime,DEC);
+  Serial1.print(";");
   Serial1.print(intervalramp,DEC);
+  Serial1.print(";");
   Serial1.print(exposuretime,DEC);
+  Serial1.print(";");
   Serial1.print(exposureramp,DEC);
+  Serial1.print(";");
   Serial1.print(isotrigger,DEC);
+  Serial1.print(";");
+  Serial1.print(isolevel,DEC);
+  Serial1.print(";");
   Serial1.print(0,DEC); // lightning value for future usage
+  Serial1.print("\n");
   }
 
 
   
 //=================================================================================================
-// MEAGA ADK USB stuff
+// MEGA ADK USB stuff
 
 // set ISO level
 // why not in megaremote.cpp? because it can't access the Usb instance or the iso_to_cam global variable
