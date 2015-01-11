@@ -229,7 +229,7 @@ int loopactioncounter = 0;
 // debug
 unsigned long timestamp1 = 0; // first timestamp
 unsigned long timestamp2 = 0; // second timestamp
-boolean logdone = false; // remark logging done
+boolean logdone = true; // remark logging done
 
 
 // initialize the library with the numbers of the interface pins
@@ -471,9 +471,10 @@ void loop()
     // do logging if not yet done
     if (logdone == false && timerpause == false)
       {
+      // mark logging as done
+      logdone = true;
       // send log information for each frame
       logframe();
-      logdone = true;
       }
     // delay for main loop
     delay(100);
@@ -651,8 +652,6 @@ void newCycle()
     // automatic mode
     collision_calculation_automatic();    
     }  
-  // reset logging
-  logdone = false;
   }
 
 //===================================================================
@@ -766,6 +765,10 @@ void statusScreen()
       // get iso level now if ISO auto is active
       if (isolevel > 0)
         {
+        // display note
+        lcd.setCursor(10, 1);
+        lcd.print("ISO??");  
+        // get iso level now
         getisolevel();
         // loop until success
         while ( getanswer(&isolevel) == 0 ) Serial << "+";  // The "Serial << "+" is for Debug only. DP / b04
@@ -776,10 +779,10 @@ void statusScreen()
         //% #ifdef HARDWARE_YUN
           // on YUN, the interupts are "twisted"
           // flash signal on pin 2 interrupt
-        //%  attachInterrupt(1, timerflash, FALLING);
+        attachInterrupt(1, timerflash, FALLING);
         //% #else
           // flash signal on pin 2 interrupt
-          attachInterrupt(0, timerflash, FALLING);
+         // attachInterrupt(0, timerflash, FALLING);
         //% #endif
         }  
       timerpause = false;
@@ -1464,7 +1467,7 @@ void settings2Srceen()
             getanswer(&isolevel);
             //isolvold = 0;
             }
-          if (isolevel == 0 && isoauto == true)
+          else if (isolevel == 0 && isoauto == true)
             {
             isoauto = false;
             lcd.setCursor(1,1);
@@ -1955,19 +1958,19 @@ void logframe()
   {
   Serial1.print("Log:");
   Serial1.print(piccount,DEC);
-  Serial1.print(";");
+  Serial1.print(",");
   Serial1.print(intervaltime,DEC);
-  Serial1.print(";");
+  Serial1.print(",");
   Serial1.print(intervalramp,DEC);
-  Serial1.print(";");
+  Serial1.print(",");
   Serial1.print(exposuretime,DEC);
-  Serial1.print(";");
+  Serial1.print(",");
   Serial1.print(exposureramp,DEC);
-  Serial1.print(";");
+  Serial1.print(",");
   Serial1.print(isotrigger,DEC);
-  Serial1.print(";");
+  Serial1.print(",");
   Serial1.print(isolevel,DEC);
-  Serial1.print(";");
+  Serial1.print(",");
   Serial1.print(0,DEC); // lightning value for future usage
   Serial1.print("\n");
   }

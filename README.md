@@ -20,7 +20,9 @@ more later ...
 
 ================
 changes since FototimerUni-0.2
-
+- commented all MegaADK-ifdef and codelines not for YUN use
+- implementated logging function for frame info, YUN only, information can be displayed over Wifi with browser
+- change ISO switching strategy on failure, for testing only @ positive ramp, ISO switch will be repeated at next cycle
 
 ================
 changes since FototimerUni-0.1
